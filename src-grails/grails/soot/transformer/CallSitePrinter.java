@@ -28,6 +28,8 @@ public class CallSitePrinter extends BodyTransformer {
 
     @Override
     protected void internalTransform(Body b, String phaseName, Map options) {
+
+        // check only if doCall object, for closure
         if(b.getMethod().getName().equals("doCall")) {
             Result callsiteVar = findCallSiteVar(b);
             if(callsiteVar.box == null) return;
