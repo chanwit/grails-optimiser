@@ -23,11 +23,11 @@ public class Helper {
         return false;
     }
 
-    static boolean hasMethodName(Body b, String name) {
+    public static boolean hasMethodName(Body b, String name) {
         return b.getMethod().getName().equals(name);
     }
 
-    static boolean listContainsBox(List<ValueBox> boxes, ValueBox boxToFind) {
+    public static boolean listContainsBox(List<ValueBox> boxes, ValueBox boxToFind) {
         for (ValueBox valueBox : boxes) {
             if (valueBox.getValue().equivTo(boxToFind.getValue())) {
                 return true;
