@@ -9,11 +9,11 @@ import java.util.List;
  */
 public class Helper {
 
-    static boolean isConstructor(Body b) {
+    public static boolean isConstructor(Body b) {
         return b.getMethod().getName().equals("<init>");
     }
 
-    static boolean isClosureType(RefType refType) {
+    public static boolean isClosureType(RefType refType) {
         SootClass closureClass = Scene.v().getSootClass("groovy.lang.Closure");
         SootClass sootClass = refType.getSootClass();
         while (sootClass.hasSuperclass()) {
