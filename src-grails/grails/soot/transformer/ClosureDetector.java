@@ -9,6 +9,7 @@ import soot.RefType;
 import soot.Unit;
 import soot.jimple.AssignStmt;
 import soot.jimple.InstanceFieldRef;
+import grails.soot.utils.Helper;
 
 public class ClosureDetector extends BodyTransformer {
 

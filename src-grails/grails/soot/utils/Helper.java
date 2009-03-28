@@ -1,4 +1,4 @@
-package grails.soot.transformer;
+package grails.soot.utils;
 
 import soot.*;
 

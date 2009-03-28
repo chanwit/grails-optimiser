@@ -1,6 +1,8 @@
 package grails.soot.transformer;
 
 import grails.soot.utils.CallsiteNameHolder;
+import grails.soot.utils.Helper;
+import grails.soot.utils.Result;
 
 import java.util.Map;
 
