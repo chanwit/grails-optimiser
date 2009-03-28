@@ -1,8 +1,6 @@
 package grails.soot;
 
-import java.util.Iterator;
-
-import grails.soot.transformer.CallSitePrinter;
+import grails.soot.transformer.CallReplacementForClosure;
 import grails.soot.transformer.CallsiteNameCollector;
 import grails.soot.transformer.ClosureDetector;
 import soot.Pack;
@@ -21,9 +19,8 @@ public class Main {
         jtp.add(new Transform("jtp.closure_detector",
                 new ClosureDetector()
         ));
-
         jtp.add(new Transform("jtp.callsite_printer",
-                new CallSitePrinter()
+                new CallReplacementForClosure()
         ));
 
         soot.Main.main(args);

@@ -1,9 +1,8 @@
 package grails.soot.transformer;
 
-import soot.Body;
-import soot.RefType;
-import soot.SootClass;
-import soot.Scene;
+import soot.*;
+
+import java.util.List;
 
 /**
  * User: chanwit
@@ -17,14 +16,23 @@ public class Helper {
     static boolean isClosureType(RefType refType) {
         SootClass closureClass = Scene.v().getSootClass("groovy.lang.Closure");
         SootClass sootClass = refType.getSootClass();
-        while(sootClass.hasSuperclass()) {
+        while (sootClass.hasSuperclass()) {
             SootClass superclass = sootClass.getSuperclass();
-            if(superclass.equals(closureClass)) return true;
+            if (superclass.equals(closureClass)) return true;
         }
         return false;
     }
 
     static boolean hasMethodName(Body b, String name) {
         return b.getMethod().getName().equals(name);
+    }
+
+    static boolean listContainsBox(List<ValueBox> boxes, ValueBox boxToFind) {
+        for (ValueBox valueBox : boxes) {
+            if (valueBox.getValue().equivTo(boxToFind.getValue())) {
+                return true;
+            }
+        }
+        return false;
     }
 }

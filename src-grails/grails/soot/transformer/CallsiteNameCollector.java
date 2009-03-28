@@ -17,26 +17,27 @@ public class CallsiteNameCollector extends BodyTransformer {
 
     @Override
     protected void internalTransform(Body b, String phaseName, Map options) {
-        if(b.getMethod().getName().equals("$createCallSiteArray")==false) return;
+        if (b.getMethod().getName().equals("$createCallSiteArray") == false) return;
 
         String[] callsitenames = null;
-        for(Unit u: b.getUnits()) {
-            if(u instanceof AssignStmt == false) continue;
+        for (Unit u : b.getUnits()) {
+            if (u instanceof AssignStmt == false) continue;
 
-            AssignStmt a = (AssignStmt)u;
-            if(a.getRightOp() instanceof NewArrayExpr) {
-                NewArrayExpr right = (NewArrayExpr)a.getRightOp();
-                callsitenames = new String[((IntConstant)right.getSize()).value];
-            } else if( a.getLeftOp()  instanceof ArrayRef &&
-                       a.getRightOp() instanceof StringConstant) {
+            AssignStmt a = (AssignStmt) u;
+            if (a.getRightOp() instanceof NewArrayExpr) {
+                NewArrayExpr right = (NewArrayExpr) a.getRightOp();
+                callsitenames = new String[((IntConstant) right.getSize()).value];
+            } else if ((a.getLeftOp() instanceof ArrayRef) &&
+                    (a.getRightOp() instanceof StringConstant)) {
                 ArrayRef left = (ArrayRef) a.getLeftOp();
                 StringConstant right = (StringConstant) a.getRightOp();
-                int index = ((IntConstant)left.getIndex()).value;
+                int index = ((IntConstant) left.getIndex()).value;
                 callsitenames[index] = right.value;
             }
 
         }
-        if(callsitenames != null) {
+
+        if (callsitenames != null) {
             CallsiteNameHolder.v().put(b.getMethod().getDeclaringClass(), callsitenames);
         }
     }
