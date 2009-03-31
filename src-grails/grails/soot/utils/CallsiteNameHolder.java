@@ -2,6 +2,7 @@ package grails.soot.utils;
 
 import java.util.HashMap;
 
+import soot.Body;
 import soot.SootClass;
 
 public class CallsiteNameHolder extends HashMap<SootClass, String[]> {
@@ -12,6 +13,10 @@ public class CallsiteNameHolder extends HashMap<SootClass, String[]> {
 
     public static CallsiteNameHolder v() {
         return _instance;
+    }
+
+    public static String[] getCallsiteNames(Body b) {
+        return _instance.get(b.getMethod().getDeclaringClass());
     }
 
 }
