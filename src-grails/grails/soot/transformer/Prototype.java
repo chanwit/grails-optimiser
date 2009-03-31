@@ -27,9 +27,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import grails.soot.utils.JimpleBuilder;
 import grails.soot.utils.Location;
 import grails.soot.utils.Helper;
 import grails.soot.utils.CallsiteNameHolder;
+
+import static grails.soot.utils.JimpleBuilder.*;
 
 /**
  * @author chanwit
@@ -50,8 +53,6 @@ public class Prototype extends BodyTransformer {
         if (!(Helper.hasMethodName(b, DOCALL_METHOD_NAME)))
             return;
 
-        SootClass closureClass = Scene.v().getSootClass("groovy.lang.Closure");
-
         PatchingChain<Unit> units = b.getUnits();
 
         Location callsiteVar = findCallSiteVar(b);
@@ -65,13 +66,13 @@ public class Prototype extends BodyTransformer {
 
         Unit invokeStmt = units.getSuccOf(callSiteObject.unit);
 
-        Value helloWorld = ((AssignStmt)invokeStmt).getInvokeExpr().getArg(1);
+        Value helloWorld = ((AssignStmt) invokeStmt).getInvokeExpr().getArg(1);
 
         SootClass sc = b.getMethod().getDeclaringClass();
         String outerClassName = sc.getName().split("\\$")[0];
-        SootClass controllerClass = Scene.v().getSootClass(outerClassName);
-        SootFieldRef fieldRef = controllerClass.getFieldByName("__render")
-                .makeRef();
+        //SootClass controllerClass = Scene.v().getSootClass(outerClassName);
+        //SootFieldRef fieldRef = controllerClass.getFieldByName("__render").makeRef();
+        //System.out.println(fieldRef.getSignature());
 
         Jimple j = Jimple.v();
 
@@ -86,30 +87,62 @@ public class Prototype extends BodyTransformer {
          * $__render.invoke($__delegate, "render", $__args)
          *
          **/
-        Local delegate = j.newLocal("$__delegate", controllerClass.getType());
-        SootMethodRef methodRef = closureClass.getMethodByName("getDelegate")
-                .makeRef();
 
-        InvokeExpr rvalue = j.newVirtualInvokeExpr(b.getThisLocal(), methodRef);
-        AssignStmt getDelegate = j.newAssignStmt(delegate, rvalue);
+        Local delegate = local("delegate", outerClassName);
+        AssignStmt getDelegate =
+            assign(delegate)
+            .from(
+                $this(b).virtual_invoke("<groovy.lang.Closure: " +
+                        "java.lang.Object getDelegate()>")
+            );
 
-        AssignStmt castDelegate = j.newAssignStmt(delegate, j.newCastExpr(delegate, controllerClass.getType()));
+        AssignStmt castDelegate =
+            assign(delegate)
+            .from(
+                cast(delegate).to(outerClassName)
+            );
 
+
+        //j.newLocal("$__render", fieldRef.type());
+        Local render = local("render", field(outerClassName, "__render"));
+        AssignStmt getRender =
+            assign(render)
+            .from(
+                object(delegate).field("__render")
+            );
+
+
+        // SootMethodRef methodRef = closureClass.getMethodByName("getDelegate")
+        // .makeRef();
+        // System.out.println(methodRef.getSignature());
+
+        //InvokeExpr rvalue = j.newVirtualInvokeExpr(b.getThisLocal(), methodRef);
+        //AssignStmt getDelegate = j.newAssignStmt(delegate, rvalue);
+
+        // AssignStmt castDelegate = j.newAssignStmt(delegate, j.newCastExpr(
+        // delegate, controllerClass.getType()));
+
+        /*
         Local render = j.newLocal("$__render", fieldRef.type());
         InstanceFieldRef renderFieldOfDelegate = j.newInstanceFieldRef(
                 delegate, fieldRef);
         AssignStmt getRender = j.newAssignStmt(render, renderFieldOfDelegate);
+        */
 
         RefType obj = Scene.v().getSootClass("java.lang.Object").getType();
         Local args = j.newLocal("$__args", obj.getArrayType());
-        AssignStmt newArray = j.newAssignStmt(args, j.newNewArrayExpr(obj, IntConstant
-                .v(1)));
+        AssignStmt newArray = j.newAssignStmt(args, j.newNewArrayExpr(obj,
+                IntConstant.v(1)));
 
-        AssignStmt assignValueToArray = j.newAssignStmt(j.newArrayRef(args, IntConstant.v(0)), helloWorld);
+        AssignStmt assignValueToArray = j.newAssignStmt(j.newArrayRef(args,
+                IntConstant.v(0)), helloWorld);
 
         SootClass sc1 = Scene.v().getSootClass(
                 "org.codehaus.groovy.grails.web.metaclass.RenderDynamicMethod");
-        SootMethodRef invokeMethod = sc1.getMethod("java.lang.Object invoke(java.lang.Object,java.lang.String,java.lang.Object[])").makeRef();
+        SootMethodRef invokeMethod = sc1
+                .getMethod(
+                        "java.lang.Object invoke(java.lang.Object,java.lang.String,java.lang.Object[])")
+                .makeRef();
         // System.out.println(invokeMethod);
 
         b.getLocals().add(delegate);
@@ -117,30 +150,14 @@ public class Prototype extends BodyTransformer {
         b.getLocals().add(render);
 
         b.getUnits().insertBefore(
-                Arrays.asList(new Unit[]{
-                    getDelegate,
-                    castDelegate,
-                    getRender,
-                    newArray,
-                    assignValueToArray
-                }),
-        invokeStmt);
+                Arrays.asList(new Unit[] { getDelegate, castDelegate,
+                        getRender, newArray, assignValueToArray }), invokeStmt);
 
-        ((AssignStmt)invokeStmt).setRightOp(
-                j.newVirtualInvokeExpr(render, invokeMethod, Arrays
-                        .asList(new Value[] { delegate, StringConstant.v("render"),
-                                args }))
-        );
+        ((AssignStmt) invokeStmt).setRightOp(j.newVirtualInvokeExpr(render,
+                invokeMethod, Arrays.asList(new Value[] { delegate,
+                        StringConstant.v("render"), args })));
 
         System.out.println(b);
-    }
-
-    private Unit makeInvokeStmt() {
-        // 1. get delegate()
-        // 2. get field "render"
-        // 3. invoke render
-        // Jimple.v().newstat
-        return null;
     }
 
     private Location findCallSiteObject(Body b, Location loc, String methodName) {
