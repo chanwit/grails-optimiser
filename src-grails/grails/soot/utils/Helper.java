@@ -9,16 +9,18 @@ import java.util.List;
  */
 public class Helper {
 
+    // find a default constructor
     public static boolean isConstructor(Body b) {
-        return b.getMethod().getName().equals("<init>");
+        return b.getMethod().getName().equals("<init>") && (b.getMethod().getParameterCount() == 0);
     }
 
     public static boolean isClosureType(RefType refType) {
         SootClass closureClass = Scene.v().getSootClass("groovy.lang.Closure");
+        //SootClass objectClass = Scene.v().getSootClass("java.lang.Object");
         SootClass sootClass = refType.getSootClass();
         while (sootClass.hasSuperclass()) {
-            SootClass superclass = sootClass.getSuperclass();
-            if (superclass.equals(closureClass)) return true;
+            sootClass = sootClass.getSuperclass();
+            if (sootClass.equals(closureClass)) return true;
         }
         return false;
     }
