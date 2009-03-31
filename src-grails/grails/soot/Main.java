@@ -37,6 +37,7 @@ public class Main {
 
     private static void initClasses() {
         String classes[] = {
+            "groovy.lang.Closure",
             "org.codehaus.groovy.grails.web.metaclass.RenderDynamicMethod"
         };
 

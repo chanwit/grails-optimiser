@@ -2,14 +2,28 @@ package grails.soot.transformer;
 
 import soot.BodyTransformer;
 import soot.Body;
+import soot.Local;
+import soot.PatchingChain;
+import soot.RefType;
+import soot.Scene;
+import soot.SootClass;
+import soot.SootFieldRef;
+import soot.SootMethodRef;
+import soot.Type;
 import soot.Unit;
+import soot.Value;
 import soot.ValueBox;
+import soot.jimple.InstanceFieldRef;
 import soot.jimple.IntConstant;
 import soot.jimple.AssignStmt;
 import soot.jimple.InvokeExpr;
+import soot.jimple.InvokeStmt;
 import soot.jimple.Jimple;
 import soot.jimple.StaticInvokeExpr;
+import soot.jimple.StringConstant;
+import soot.jimple.VirtualInvokeExpr;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -20,8 +34,8 @@ import grails.soot.utils.CallsiteNameHolder;
 /**
  * @author chanwit
  *
- * This is a prototype of a transformer
- * to convert dynamic call <b>render</b> to something else.
+ *         This is a prototype of a transformer to convert dynamic call
+ *         <b>render</b> to something else.
  *
  **/
 public class Prototype extends BodyTransformer {
@@ -36,6 +50,10 @@ public class Prototype extends BodyTransformer {
         if (!(Helper.hasMethodName(b, DOCALL_METHOD_NAME)))
             return;
 
+        SootClass closureClass = Scene.v().getSootClass("groovy.lang.Closure");
+
+        PatchingChain<Unit> units = b.getUnits();
+
         Location callsiteVar = findCallSiteVar(b);
         if (callsiteVar.box == null)
             return;
@@ -45,9 +63,76 @@ public class Prototype extends BodyTransformer {
         if (callSiteObject.box == null)
             return;
 
-        Unit invokeStmt = b.getUnits().getSuccOf(callSiteObject.unit);
-        Unit newInvokeStmt = makeInvokeStmt();
+        Unit invokeStmt = units.getSuccOf(callSiteObject.unit);
 
+        Value helloWorld = ((AssignStmt)invokeStmt).getInvokeExpr().getArg(1);
+
+        SootClass sc = b.getMethod().getDeclaringClass();
+        String outerClassName = sc.getName().split("\\$")[0];
+        SootClass controllerClass = Scene.v().getSootClass(outerClassName);
+        SootFieldRef fieldRef = controllerClass.getFieldByName("__render")
+                .makeRef();
+
+        Jimple j = Jimple.v();
+
+        /**
+         *
+         * $__delegate = invokespecial this.getDelegate()
+         *
+         * $__render = $__delegate.__render
+         *
+         * $__args = newarray object[1] invoke
+         *
+         * $__render.invoke($__delegate, "render", $__args)
+         *
+         **/
+        Local delegate = j.newLocal("$__delegate", controllerClass.getType());
+        SootMethodRef methodRef = closureClass.getMethodByName("getDelegate")
+                .makeRef();
+
+        InvokeExpr rvalue = j.newVirtualInvokeExpr(b.getThisLocal(), methodRef);
+        AssignStmt getDelegate = j.newAssignStmt(delegate, rvalue);
+
+        AssignStmt castDelegate = j.newAssignStmt(delegate, j.newCastExpr(delegate, controllerClass.getType()));
+
+        Local render = j.newLocal("$__render", fieldRef.type());
+        InstanceFieldRef renderFieldOfDelegate = j.newInstanceFieldRef(
+                delegate, fieldRef);
+        AssignStmt getRender = j.newAssignStmt(render, renderFieldOfDelegate);
+
+        RefType obj = Scene.v().getSootClass("java.lang.Object").getType();
+        Local args = j.newLocal("$__args", obj.getArrayType());
+        AssignStmt newArray = j.newAssignStmt(args, j.newNewArrayExpr(obj, IntConstant
+                .v(1)));
+
+        AssignStmt assignValueToArray = j.newAssignStmt(j.newArrayRef(args, IntConstant.v(0)), helloWorld);
+
+        SootClass sc1 = Scene.v().getSootClass(
+                "org.codehaus.groovy.grails.web.metaclass.RenderDynamicMethod");
+        SootMethodRef invokeMethod = sc1.getMethod("java.lang.Object invoke(java.lang.Object,java.lang.String,java.lang.Object[])").makeRef();
+        // System.out.println(invokeMethod);
+
+        b.getLocals().add(delegate);
+        b.getLocals().add(args);
+        b.getLocals().add(render);
+
+        b.getUnits().insertBefore(
+                Arrays.asList(new Unit[]{
+                    getDelegate,
+                    castDelegate,
+                    getRender,
+                    newArray,
+                    assignValueToArray
+                }),
+        invokeStmt);
+
+        ((AssignStmt)invokeStmt).setRightOp(
+                j.newVirtualInvokeExpr(render, invokeMethod, Arrays
+                        .asList(new Value[] { delegate, StringConstant.v("render"),
+                                args }))
+        );
+
+        System.out.println(b);
     }
 
     private Unit makeInvokeStmt() {
