@@ -7,6 +7,7 @@ import soot.ValueBox;
 import soot.jimple.IntConstant;
 import soot.jimple.AssignStmt;
 import soot.jimple.InvokeExpr;
+import soot.jimple.Jimple;
 import soot.jimple.StaticInvokeExpr;
 
 import java.util.List;
@@ -44,6 +45,17 @@ public class Prototype extends BodyTransformer {
         if (callSiteObject.box == null)
             return;
 
+        Unit invokeStmt = b.getUnits().getSuccOf(callSiteObject.unit);
+        Unit newInvokeStmt = makeInvokeStmt();
+
+    }
+
+    private Unit makeInvokeStmt() {
+        // 1. get delegate()
+        // 2. get field "render"
+        // 3. invoke render
+        // Jimple.v().newstat
+        return null;
     }
 
     private Location findCallSiteObject(Body b, Location loc, String methodName) {
