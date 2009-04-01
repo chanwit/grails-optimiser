@@ -13,13 +13,19 @@ import soot.Value;
 import soot.jimple.AssignStmt;
 import soot.jimple.CastExpr;
 import soot.jimple.InstanceFieldRef;
+import soot.jimple.IntConstant;
 import soot.jimple.InvokeExpr;
 import soot.jimple.Jimple;
+import soot.jimple.NewArrayExpr;
 
 public class JimpleBuilder {
 
+    public static Local array(String name, String typeName) {
+        return Jimple.v().newLocal("$__" + name, Scene.v().getRefType(typeName).getArrayType());
+    }
+
     public static Local local(String name, String typeName) {
-        return Jimple.v().newLocal("$__" + name, Scene.v().getSootClass(typeName).getType());
+        return Jimple.v().newLocal("$__" + name, Scene.v().getRefType(typeName));
     }
 
     public static Local local(String name, Type type) {
@@ -91,7 +97,12 @@ public class JimpleBuilder {
             this.left = left;
         }
 
-        public AssignStmt from(Value right) {
+        public AssignBuilder at(int index) {
+            this.left = Jimple.v().newArrayRef(this.left, IntConstant.v(index));
+            return this;
+        }
+
+        public AssignStmt equal(Value right) {
             return Jimple.v().newAssignStmt(left, right);
         }
 
@@ -125,6 +136,10 @@ public class JimpleBuilder {
 
     public static CastBuilder cast(Value local) {
         return new CastBuilder(local);
+    }
+
+    public static NewArrayExpr newarray(String type, Integer size) {
+        return Jimple.v().newNewArrayExpr(Scene.v().getRefType(type), IntConstant.v(size));
     }
 
 }

@@ -91,14 +91,14 @@ public class Prototype extends BodyTransformer {
         Local delegate = local("delegate", outerClassName);
         AssignStmt getDelegate =
             assign(delegate)
-            .from(
+            .equal(
                 $this(b).virtual_invoke("<groovy.lang.Closure: " +
                         "java.lang.Object getDelegate()>")
             );
 
         AssignStmt castDelegate =
             assign(delegate)
-            .from(
+            .equal(
                 cast(delegate).to(outerClassName)
             );
 
@@ -107,7 +107,7 @@ public class Prototype extends BodyTransformer {
         Local render = local("render", field(outerClassName, "__render"));
         AssignStmt getRender =
             assign(render)
-            .from(
+            .equal(
                 object(delegate).field("__render")
             );
 
@@ -129,13 +129,25 @@ public class Prototype extends BodyTransformer {
         AssignStmt getRender = j.newAssignStmt(render, renderFieldOfDelegate);
         */
 
-        RefType obj = Scene.v().getSootClass("java.lang.Object").getType();
-        Local args = j.newLocal("$__args", obj.getArrayType());
-        AssignStmt newArray = j.newAssignStmt(args, j.newNewArrayExpr(obj,
-                IntConstant.v(1)));
+        //RefType obj = Scene.v().getSootClass("java.lang.Object").getType();
+        //Local args = j.newLocal("$__args", obj.getArrayType());
+        Local args = array("args", "java.lang.Object");
+        System.out.println(args.getType());
+        AssignStmt newArray = assign(args)
+            .equal(
+                newarray("java.lang.Object", 1)
+            );
 
-        AssignStmt assignValueToArray = j.newAssignStmt(j.newArrayRef(args,
-                IntConstant.v(0)), helloWorld);
+        //AssignStmt newArray = j.newAssignStmt(args, j.newNewArrayExpr(obj,
+        //        IntConstant.v(1)));
+
+        AssignStmt assignValueToArray = assign(args).at(0)
+            .equal(
+                helloWorld
+            );
+
+        //AssignStmt assignValueToArray = j.newAssignStmt(j.newArrayRef(args,
+        //        IntConstant.v(0)), helloWorld);
 
         SootClass sc1 = Scene.v().getSootClass(
                 "org.codehaus.groovy.grails.web.metaclass.RenderDynamicMethod");
