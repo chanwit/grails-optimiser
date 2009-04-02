@@ -33,18 +33,19 @@ import soot.jimple.StringConstant;
  *         <b>render</b> to something else.
  *
  **/
-public class Prototype extends BodyTransformer {
+public class Prototype_2 extends BodyTransformer {
 
-    private static final String DOCALL_METHOD_NAME = "doCall";
+    private static final String INVOKE_SIGNATURE = "<org.codehaus.groovy.grails.web.metaclass.RenderDynamicMethod: java.lang.Object invoke(java.lang.Object,java.lang.String,java.lang.Object[])>";
+    private static final String GET_DELEGATE_SIGNATURE = "<groovy.lang.Closure: java.lang.Object getDelegate()>";
+    private static final String DOCALL_SUB_SIGNATURE = "java.lang.Object doCall(java.lang.Object)";
+
     private static final Location EMPTY_LOCATION = new Location(null, null);
 
     @Override
     protected void internalTransform(Body b, String phaseName, Map options) {
 
-        // check only if doCall object, for closure
-        if (!(Helper.hasMethodName(b, DOCALL_METHOD_NAME)))
+        if(!(b.getMethod().getSubSignature().equals(DOCALL_SUB_SIGNATURE)))
             return;
-
         PatchingChain<Unit> units = b.getUnits();
 
         Location callsiteVar = findCallSiteVar(b);
@@ -61,36 +62,22 @@ public class Prototype extends BodyTransformer {
 
         SootClass sc = b.getMethod().getDeclaringClass();
         String outerClassName = sc.getName().split("\\$")[0];
-        /**
-         *
-         * $__delegate = invokespecial this.getDelegate()
-         *
-         * $__render = $__delegate.__render
-         *
-         * $__args = newarray object[1] invoke
-         *
-         * $__render.invoke($__delegate, "render", $__args)
-         *
-         **/
+
 
         Local delegate = local("delegate", outerClassName);
         AssignStmt getDelegate =
             assign(delegate)
             .equal(
-                $this(b).virtual_invoke(
-                    "<groovy.lang.Closure: " +
-                    "java.lang.Object getDelegate()>")
+                $this(b).virtual_invoke(GET_DELEGATE_SIGNATURE)
             );
 
-        AssignStmt castDelegate =
-            assign(delegate)
+        AssignStmt castDelegate = assign(delegate)
             .equal(
                 cast(delegate).to(outerClassName)
             );
 
         Local render = local("render", field(outerClassName, "__render"));
-        AssignStmt getRender =
-            assign(render)
+        AssignStmt getRender = assign(render)
             .equal(
                 object(delegate).field("__render")
             );
@@ -106,11 +93,7 @@ public class Prototype extends BodyTransformer {
                 args(invokeStmt, 1)
             );
 
-        SootMethodRef invokeMethod = Scene.v().getMethod(
-                "<org.codehaus.groovy.grails.web.metaclass.RenderDynamicMethod:" +
-                " java.lang.Object" +
-                " invoke(java.lang.Object,java.lang.String,java.lang.Object[])>"
-        ).makeRef();
+        SootMethodRef invokeMethod = Scene.v().getMethod(INVOKE_SIGNATURE).makeRef();
 
         b.getLocals().addAll(Arrays.asList(new Local[]{
                 delegate,
@@ -118,7 +101,7 @@ public class Prototype extends BodyTransformer {
                 render
         }));
 
-        b.getUnits().insertBefore(Arrays.asList(new Unit[] {
+        units.insertBefore(Arrays.asList(new Unit[] {
                 getDelegate,
                 castDelegate,
                 getRender,
@@ -127,12 +110,15 @@ public class Prototype extends BodyTransformer {
         }), invokeStmt);
 
         invokeStmt.setRightOp(
-            object(render).virtual_invoke(
-                    invokeMethod,
-                    new Value[]{ delegate, StringConstant.v("render"), args}
+            object(render).virtual_invoke(invokeMethod,
+                new Value[]{
+                    delegate,
+                    StringConstant.v("render"),
+                    args
+                }
         ));
 
-        System.out.println(b);
+        // System.out.println(b);
     }
 
     private Location findCallSiteObject(Body b, Location loc, String methodName) {

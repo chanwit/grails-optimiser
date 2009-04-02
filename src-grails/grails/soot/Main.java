@@ -3,7 +3,7 @@ package grails.soot;
 import grails.soot.transformer.CallReplacementForClosure;
 import grails.soot.transformer.CallsiteNameCollector;
 import grails.soot.transformer.ClosureDetector;
-import grails.soot.transformer.Prototype;
+import grails.soot.transformer.Prototype_2;
 import grails.soot.transformer.RenderIntroduction;
 import soot.Pack;
 import soot.PackManager;
@@ -28,7 +28,7 @@ public class Main {
                 new ClosureDetector()
         ));
         jtp.add(new Transform("jtp.prototype",
-                new Prototype()
+                new Prototype_2()
         ));
 
         initClasses();

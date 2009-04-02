@@ -1,5 +1,7 @@
 package grails.soot.utils;
 
+import java.util.Arrays;
+
 import soot.Body;
 import soot.Local;
 import soot.RefType;
@@ -17,6 +19,7 @@ import soot.jimple.IntConstant;
 import soot.jimple.InvokeExpr;
 import soot.jimple.Jimple;
 import soot.jimple.NewArrayExpr;
+import soot.jimple.VirtualInvokeExpr;
 
 public class JimpleBuilder {
 
@@ -59,6 +62,12 @@ public class JimpleBuilder {
         public InstanceFieldRef field(String fieldName) {
             SootField f = ((RefType)(local.getType())).getSootClass().getFieldByName(fieldName);
             return Jimple.v().newInstanceFieldRef(local, f.makeRef());
+        }
+
+        public InvokeExpr virtual_invoke(SootMethodRef mref, Value[] values) {
+            return Jimple.v().newVirtualInvokeExpr(
+                    this.local, mref, Arrays.asList(values)
+            );
         }
 
     }
@@ -140,6 +149,10 @@ public class JimpleBuilder {
 
     public static NewArrayExpr newarray(String type, Integer size) {
         return Jimple.v().newNewArrayExpr(Scene.v().getRefType(type), IntConstant.v(size));
+    }
+
+    public static Value args(AssignStmt a, int index) {
+        return a.getInvokeExpr().getArg(index);
     }
 
 }
